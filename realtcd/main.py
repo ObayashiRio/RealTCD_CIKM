@@ -68,6 +68,9 @@ def main(opt, metrics_callback=_print_metrics, plotting_callback=None):
     if opt.lr_reinit is None: opt.lr_reinit = opt.lr
 
     # Use GPU
+    if hasattr(opt, 'no_gpu') and opt.no_gpu:
+        opt.gpu = False
+    
     if opt.gpu:
         os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(str(x) for x in opt.gpu_num)
         if opt.float:

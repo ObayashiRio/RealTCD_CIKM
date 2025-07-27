@@ -78,7 +78,7 @@ class BaseModel(nn.Module):
         self.adjacency = torch.ones((self.num_vars, self.num_vars)) - torch.eye(self.num_vars)
         self.adjacency[:,self.num_nodes:] = 0  # lpw add
         if self.llm_res_matrix_path != None:
-            self.adjacency = torch.from_numpy(np.load(self.llm_res_matrix_path)).to('cuda') # lpw add for llm-enhanced
+            self.adjacency = torch.from_numpy(np.load(self.llm_res_matrix_path)) # lpw add for llm-enhanced
         self.gumbel_adjacency = GumbelAdjacency(self.num_vars)
 
         if self.intervention_knowledge == 'unknown' and self.intervention:
@@ -166,7 +166,7 @@ class BaseModel(nn.Module):
                     # to bs x num_vars x num_regimes, in order to select the
                     # MLP parameter corresponding to the regime
                     R = (1 - R).type(torch.int64)
-                    R = R * regime.unsqueeze(1).cuda()
+                    R = R * regime.unsqueeze(1)
                     R = torch.zeros(R.size(0), self.num_vars, self.num_regimes).scatter_(2, R.unsqueeze(2), 1)
 
                     # apply the first MLP layer with the mask M and the

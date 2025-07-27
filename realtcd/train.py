@@ -122,7 +122,7 @@ def train(model, gt_adjacency, gt_interv, train_data, test_data, opt, metrics_ca
         full_adjacency = torch.ones((model.num_vars, model.num_vars)) - torch.eye(model.num_vars)
         full_adjacency[:,opt.num_nodes:] = 0 # lpw add
         if model.llm_res_matrix_path != None:
-            full_adjacency = torch.from_numpy(np.load(model.llm_res_matrix_path)).to('cuda') # lpw add for llm-enhanced
+            full_adjacency = torch.from_numpy(np.load(model.llm_res_matrix_path)) # lpw add for llm-enhanced
         constraint_normalization = compute_dag_constraint(full_adjacency).item()
 
     # Learning loop:

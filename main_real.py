@@ -147,8 +147,10 @@ if __name__ == "__main__":
                         help='Plot density (only implemented for 2 vars)')
 
     # device and numerical precision
-    parser.add_argument('--gpu', type=bool, default=True, # action="store_true",
+    parser.add_argument('--gpu', action="store_true", default=True,
                         help="Use GPU")
+    parser.add_argument('--no-gpu', action="store_true", default=False,
+                        help="Do not use GPU")
     parser.add_argument('--gpu-num', type=int, default=[gpu], nargs='+', 
                         help="used gpu")
     parser.add_argument('--float', action="store_true",

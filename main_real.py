@@ -148,7 +148,7 @@ if __name__ == "__main__":
 
     # device and numerical precision
     parser.add_argument('--gpu', action="store_true", default=True,
-                        help="Use GPU")
+                        help="Use GPU (CUDA or MPS)")
     parser.add_argument('--no-gpu', action="store_true", default=False,
                         help="Do not use GPU")
     parser.add_argument('--gpu-num', type=int, default=[gpu], nargs='+', 

@@ -152,7 +152,8 @@ class BaseModel(nn.Module):
                     assert mask is not None, 'Mask is not set!'
                     assert regime is not None, 'Regime is not set!'
 
-                    regime = torch.from_numpy(regime)
+                    if isinstance(regime, np.ndarray):
+                        regime = torch.from_numpy(regime)
                     R = mask
 
                     if self.intervention_knowledge == "unknown":
@@ -167,13 +168,17 @@ class BaseModel(nn.Module):
                     # MLP parameter corresponding to the regime
                     R = (1 - R).type(torch.int64)
                     R = R * regime.unsqueeze(1)
-                    R = torch.zeros(R.size(0), self.num_vars, self.num_regimes).scatter_(2, R.unsqueeze(2), 1)
+                    device = R.device
+                    R = torch.zeros(R.size(0), self.num_vars, self.num_regimes, device=device).scatter_(2, R.unsqueeze(2), 1)
 
                     # apply the first MLP layer with the mask M and the
                     # parameters 'selected' by R
-                    w = torch.einsum('tijk, btk -> btij', weights[layer], R)
+                    w = torch.einsum('tijk, btk -> btij', weights[layer], R).to(x.device)
+                    M = M.to(x.device)
+                    adj = adj.to(x.device)
+                    x = x.to(x.device)
                     x = torch.einsum("btij, bjt, ljt, bj -> bti", w, M, adj, x)
-                    x += torch.einsum("btk,tik->bti", R, biases[layer])
+                    x += torch.einsum("btk,tik->bti", R.to(x.device), biases[layer].to(x.device))
 
             # 2nd layer and more
             else:

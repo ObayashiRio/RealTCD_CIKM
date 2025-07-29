@@ -67,16 +67,32 @@ def main(opt, metrics_callback=_print_metrics, plotting_callback=None):
     # adjust some default hparams
     if opt.lr_reinit is None: opt.lr_reinit = opt.lr
 
-    # Use GPU
+    # Use GPU (CUDA or MPS)
     if hasattr(opt, 'no_gpu') and opt.no_gpu:
         opt.gpu = False
     
     if opt.gpu:
-        os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(str(x) for x in opt.gpu_num)
-        if opt.float:
-            torch.set_default_tensor_type('torch.cuda.FloatTensor')
+        # Check if CUDA is available, otherwise use MPS
+        if torch.cuda.is_available():
+            os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(str(x) for x in opt.gpu_num)
+            if opt.float:
+                torch.set_default_tensor_type('torch.cuda.FloatTensor')
+            else:
+                torch.set_default_tensor_type('torch.cuda.DoubleTensor')
+        elif torch.backends.mps.is_available():
+            # Use MPS for Mac
+            if opt.float:
+                torch.set_default_tensor_type('torch.FloatTensor')
+            else:
+                torch.set_default_tensor_type('torch.DoubleTensor')
+            print("Using MPS (Metal Performance Shaders) backend")
         else:
-            torch.set_default_tensor_type('torch.cuda.DoubleTensor')
+            print("No GPU available, using CPU")
+            opt.gpu = False
+            if opt.float:
+                torch.set_default_tensor_type('torch.FloatTensor')
+            else:
+                torch.set_default_tensor_type('torch.DoubleTensor')
     else:
         if opt.float:
             torch.set_default_tensor_type('torch.FloatTensor')
@@ -84,6 +100,18 @@ def main(opt, metrics_callback=_print_metrics, plotting_callback=None):
             torch.set_default_tensor_type('torch.DoubleTensor')
 
 
+    # Helper function to get device
+    def get_device():
+        if opt.gpu:
+            if torch.cuda.is_available():
+                return torch.device('cuda')
+            elif torch.backends.mps.is_available():
+                return torch.device('mps')
+        return torch.device('cpu')
+    
+    device = get_device()
+    print(f"Using device: {device}")
+    
     # raise error if not valid setting
     if not(not opt.intervention or \
     (opt.intervention and opt.intervention_type == "perfect" and opt.intervention_knowledge == "known") or \
@@ -146,6 +174,8 @@ def main(opt, metrics_callback=_print_metrics, plotting_callback=None):
     else:
         raise ValueError("opt.model has to be in {DCDI-G, DCDI-DSF}")
 
+    # Move model to device
+    model = model.to(device)
 
     # save gt adjacency
     dump(train_data.adjacency.detach().cpu().numpy(), opt.exp_path, 'gt-adjacency')

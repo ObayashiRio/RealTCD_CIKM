@@ -87,7 +87,10 @@ class GumbelAdjacency(torch.nn.Module):
         self.reset_parameters()
 
     def forward(self, bs, tau=1, drawhard=True):
-        adj = gumbel_sigmoid(self.log_alpha, self.uniform, bs, tau=tau, hard=drawhard)
+        # Move uniform distribution to the same device as log_alpha
+        device = self.log_alpha.device
+        uniform = torch.distributions.uniform.Uniform(0, 1)
+        adj = gumbel_sigmoid(self.log_alpha, uniform, bs, tau=tau, hard=drawhard)
         return adj
 
     def get_proba(self):
@@ -118,9 +121,13 @@ class GumbelIntervWeight(torch.nn.Module):
 
     def forward(self, bs, regime, tau=1, drawhard=True):
         # if observational regime, always return a mask full of one
-        log_alpha = torch.cat((self.log_alpha_obs, self.log_alpha), dim=1)
-        regime = regime.type(torch.LongTensor)
-        interv_w = gumbel_sigmoid(log_alpha[:,regime], self.uniform, 1, tau=tau, hard=drawhard)
+        log_alpha_obs = self.log_alpha_obs.to(self.log_alpha.device)
+        log_alpha = torch.cat((log_alpha_obs, self.log_alpha), dim=1)
+        regime = regime.type(torch.LongTensor).to(self.log_alpha.device)
+        # Move uniform distribution to the same device as log_alpha
+        device = log_alpha.device
+        uniform = torch.distributions.uniform.Uniform(0, 1)
+        interv_w = gumbel_sigmoid(log_alpha[:,regime], uniform, 1, tau=tau, hard=drawhard)
         interv_w = interv_w.squeeze().transpose(0, 1)
         return interv_w
 

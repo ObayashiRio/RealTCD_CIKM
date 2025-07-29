@@ -65,6 +65,10 @@ def train(model, gt_adjacency, gt_interv, train_data, test_data, opt, metrics_ca
     """
     Applying augmented Lagrangian to solve the continuous constrained problem.
     """
+    # Get device
+    device = next(model.parameters()).device
+    print(f"Training on device: {device}")
+    
     first_stop = 0
     second_stop = 0
     thresholded = False
@@ -130,6 +134,16 @@ def train(model, gt_adjacency, gt_interv, train_data, test_data, opt, metrics_ca
         # compute loss
         model.train()
         x, mask, regime = train_data.sample(opt.train_batch_size)
+        
+        # Move data to device
+        x = x.to(device)
+        mask = mask.to(device)
+        if regime is not None:
+            if isinstance(regime, np.ndarray):
+                regime = torch.from_numpy(regime).to(device)
+            else:
+                regime = regime.to(device)
+        
         weights, biases, extra_params = model.get_parameters(mode="wbx")
 
         loss = compute_loss(x, mask, regime, model, weights, biases, extra_params,
@@ -477,6 +491,10 @@ def retrain(model, train_data, test_data, dag_folder, opt, metrics_callback, plo
     """
     Retrain a model which is already DAG
     """
+    # Get device
+    device = next(model.parameters()).device
+    print(f"Retraining on device: {device}")
+    
     # Prepare path for saving results
     stage_name = "retrain_{}".format(dag_folder)
     save_path = os.path.join(opt.exp_path, stage_name)
@@ -517,6 +535,16 @@ def retrain(model, train_data, test_data, dag_folder, opt, metrics_callback, plo
         # compute loss
         model.train()
         x, mask, regime = train_data.sample(opt.train_batch_size)
+        
+        # Move data to device
+        x = x.to(device)
+        mask = mask.to(device)
+        if regime is not None:
+            if isinstance(regime, np.ndarray):
+                regime = torch.from_numpy(regime).to(device)
+            else:
+                regime = regime.to(device)
+        
         weights, biases, extra_params = model.get_parameters(mode="wbx")
         nll = compute_loss(x, mask, regime, model, weights, biases, extra_params,
                            opt.intervention, opt.intervention_type,
@@ -557,6 +585,16 @@ def retrain(model, train_data, test_data, dag_folder, opt, metrics_callback, plo
         if iter % 1000 == 0:
             with torch.no_grad():
                 x, mask, regime = test_data.sample(test_data.num_samples)
+                
+                # Move validation data to device
+                x = x.to(device)
+                mask = mask.to(device)
+                if regime is not None:
+                    if isinstance(regime, np.ndarray):
+                        regime = torch.from_numpy(regime).to(device)
+                    else:
+                        regime = regime.to(device)
+                
                 nll_val = compute_loss(x, mask, regime, model, weights, biases,
                                        extra_params, opt.intervention,
                                        opt.intervention_type,
